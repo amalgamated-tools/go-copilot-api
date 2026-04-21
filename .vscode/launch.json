@@ -1,0 +1,50 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Copilot API",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "args": [
+                "start"
+            ],
+            "program": "cmd/copilot-api/main.go",
+            "showLog": true
+        },
+        {
+            "name": "Run Copilot API (Verbose)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "args": [
+                "start",
+                "--verbose"
+            ],
+            "program": "cmd/copilot-api/main.go",
+            "showLog": true
+        },
+        {
+            "name": "Run Copilot API (GetUsage)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "args": [
+                "check-usage"
+            ],
+            "program": "cmd/copilot-api/main.go",
+            "showLog": true
+        },
+        {
+            "name": "Run Copilot API (Auth)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "args": [
+                "auth"
+            ],
+            "program": "cmd/copilot-api/main.go",
+            "showLog": true
+        }
+    ]
+}
