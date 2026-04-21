@@ -143,6 +143,13 @@ func runStart(args []string) {
 		accountType = state.AccountIndividual
 	}
 
+	// Configure log level based on verbose flag
+	logLevel := slog.LevelInfo
+	if verbose {
+		logLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+
 	// Apply CLI flags to state
 	state.SetCLIFlags(accountType, verbose, false, autoTruncate, rateLimit)
 
@@ -213,7 +220,7 @@ func runStart(args []string) {
 	if resp != nil {
 		slog.Info("Available models", "count", len(resp.Data))
 		for _, m := range resp.Data {
-			slog.Info("model", "id", m.ID, "vendor", m.Vendor)
+			slog.DebugContext(context.Background(), "model", "id", m.ID, "vendor", m.Vendor)
 		}
 	}
 
@@ -238,7 +245,7 @@ func runStart(args []string) {
 
 	state.SetServerStartTime(time.Now().UnixMilli())
 	slog.Info("Listening", "url", fmt.Sprintf("http://%s:%d", displayHost, port))
-	slog.Info("bound to", "address", addr)
+	slog.DebugContext(context.Background(), "bound to", "address", addr)
 
 	// Wait for shutdown signal
 	sigCh := make(chan os.Signal, 1)
