@@ -220,7 +220,7 @@ func runStart(args []string) {
 	if resp != nil {
 		slog.Info("Available models", "count", len(resp.Data))
 		for _, m := range resp.Data {
-			slog.Debug("model", "id", m.ID, "vendor", m.Vendor)
+			slog.DebugContext(context.Background(), "model", "id", m.ID, "vendor", m.Vendor)
 		}
 	}
 
@@ -245,7 +245,7 @@ func runStart(args []string) {
 
 	state.SetServerStartTime(time.Now().UnixMilli())
 	slog.Info("Listening", "url", fmt.Sprintf("http://%s:%d", displayHost, port))
-	slog.Debug("bound to", "address", addr)
+	slog.DebugContext(context.Background(), "bound to", "address", addr)
 
 	// Wait for shutdown signal
 	sigCh := make(chan os.Signal, 1)
