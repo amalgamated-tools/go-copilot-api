@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
@@ -148,11 +148,11 @@ func runStart(args []string) {
 
 	// Load and apply config.yaml
 	if err := config.EnsureDataDir(); err != nil {
-		log.Printf("Warning: could not ensure data directory: %v", err)
+		slog.Warn("could not ensure data directory", "error", err)
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		log.Printf("Warning: could not load config.yaml: %v", err)
+		slog.Warn("could not load config.yaml", "error", err)
 	}
 
 	// Apply config to state
@@ -187,31 +187,33 @@ func runStart(args []string) {
 		ratelimit.Init(rlCfg)
 	}
 
-	log.Printf("copilot-api-go v%s", version)
+	slog.Info("copilot-api-go", "version", version)
 
 	// Fetch VSCode version
 	vsCodeVersion, err := copilot.FetchVSCodeVersion()
 	if err != nil {
-		log.Printf("Warning: could not fetch VSCode version: %v", err)
+		slog.Warn("could not fetch VSCode version", "error", err)
 		vsCodeVersion = copilot.VSCodeVersionFallback
 	}
 	state.SetVSCodeVersion(vsCodeVersion)
 
 	// Initialize token management
 	if err := token.Init(token.InitOptions{CLIToken: githubToken}); err != nil {
-		log.Fatalf("Authentication failed: %v", err)
+		slog.Error("Authentication failed", "error", err)
+		os.Exit(1)
 	}
 
 	// Fetch model catalog
 	if err := models.Fetch(); err != nil {
-		log.Fatalf("Failed to fetch models: %v", err)
+		slog.Error("Failed to fetch models", "error", err)
+		os.Exit(1)
 	}
 
 	resp := state.GetModels()
 	if resp != nil {
-		log.Printf("Available models: %d", len(resp.Data))
+		slog.Info("Available models", "count", len(resp.Data))
 		for _, m := range resp.Data {
-			log.Printf("  - %s (%s)", m.ID, m.Vendor)
+			slog.Info("model", "id", m.ID, "vendor", m.Vendor)
 		}
 	}
 
@@ -230,19 +232,20 @@ func runStart(args []string) {
 	srv := server.New(server.Options{Port: port, Host: host})
 	addr, err := server.ListenAndServe(srv)
 	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slog.Error("Failed to start server", "error", err)
+		os.Exit(1)
 	}
 
 	state.SetServerStartTime(time.Now().UnixMilli())
-	log.Printf("Listening on http://%s:%d", displayHost, port)
-	log.Printf("  (bound to %s)", addr)
+	slog.Info("Listening", "url", fmt.Sprintf("http://%s:%d", displayHost, port))
+	slog.Info("bound to", "address", addr)
 
 	// Wait for shutdown signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	log.Println("Shutting down...")
+	slog.Info("Shutting down...")
 	token.StopRefresh()
 
 	var shutdownTimeout int
@@ -255,9 +258,9 @@ func runStart(args []string) {
 	defer cancel()
 
 	if err := server.Shutdown(ctx, srv); err != nil {
-		log.Printf("Shutdown error: %v", err)
+		slog.Error("Shutdown error", "error", err)
 	}
-	log.Println("Stopped.")
+	slog.Info("Stopped.")
 }
 
 // ============================================================================
@@ -267,7 +270,8 @@ func runStart(args []string) {
 func runAuth(args []string) {
 	_ = args
 	if err := config.EnsureDataDir(); err != nil {
-		log.Fatalf("Could not ensure data directory: %v", err)
+		slog.Error("Could not ensure data directory", "error", err)
+		os.Exit(1)
 	}
 
 	vsCodeVersion, _ := copilot.FetchVSCodeVersion()
@@ -279,7 +283,8 @@ func runAuth(args []string) {
 	fmt.Println("Starting GitHub device authorization flow...")
 	tok, err := auth.RunDeviceFlow()
 	if err != nil {
-		log.Fatalf("Authentication failed: %v", err)
+		slog.Error("Authentication failed", "error", err)
+		os.Exit(1)
 	}
 
 	state.SetGitHubToken(tok)
@@ -287,7 +292,7 @@ func runAuth(args []string) {
 	// Validate and show user info
 	user, err := token.GetGitHubUser()
 	if err != nil {
-		log.Printf("Warning: could not validate token: %v", err)
+		slog.Warn("could not validate token", "error", err)
 	} else {
 		fmt.Printf("Logged in as %s\n", user.Login)
 	}
@@ -302,7 +307,8 @@ func runAuth(args []string) {
 func runLogout(args []string) {
 	_ = args
 	if err := auth.ClearToken(); err != nil {
-		log.Fatalf("Failed to clear token: %v", err)
+		slog.Error("Failed to clear token", "error", err)
+		os.Exit(1)
 	}
 	fmt.Println("Logged out. GitHub token removed.")
 }
@@ -314,7 +320,8 @@ func runLogout(args []string) {
 func runCheckUsage(args []string) {
 	_ = args
 	if err := config.EnsureDataDir(); err != nil {
-		log.Fatalf("Could not ensure data directory: %v", err)
+		slog.Error("Could not ensure data directory", "error", err)
+		os.Exit(1)
 	}
 
 	vsCodeVersion, _ := copilot.FetchVSCodeVersion()
@@ -326,13 +333,15 @@ func runCheckUsage(args []string) {
 	// Load token from file/env
 	tok, err := auth.LoadToken()
 	if err != nil || tok == "" {
-		log.Fatalf("No GitHub token found. Run `copilot-api-go auth` first.")
+		fmt.Fprintln(os.Stderr, "No GitHub token found. Run `copilot-api-go auth` first.")
+		os.Exit(1)
 	}
 	state.SetGitHubToken(tok)
 
 	usage, err := token.GetCopilotUsage()
 	if err != nil {
-		log.Fatalf("Failed to get Copilot usage: %v", err)
+		slog.Error("Failed to get Copilot usage", "error", err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Plan: %s\n", usage.CopilotPlan)

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -30,7 +30,7 @@ var wsUpgrader = websocket.Upgrader{
 func WebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("WebSocket upgrade failed: %v", err)
+		slog.ErrorContext(r.Context(), "WebSocket upgrade failed", "error", err)
 		return
 	}
 	defer conn.Close()

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"sync"
@@ -131,7 +131,7 @@ func Init(opts InitOptions) error {
 	if err != nil {
 		return fmt.Errorf("GitHub token validation failed: %w", err)
 	}
-	log.Printf("Logged in as %s", user.Login)
+	slog.Info("Logged in", "user", user.Login)
 
 	// 4. Fetch initial Copilot token
 	if err := refreshCopilotToken(); err != nil {
@@ -223,7 +223,7 @@ func (m *Manager) refreshLoop() {
 			return
 		case <-time.After(wait):
 			if err := refreshCopilotToken(); err != nil {
-				log.Printf("Failed to refresh Copilot token: %v", err)
+				slog.Error("Failed to refresh Copilot token", "error", err)
 			}
 		}
 	}
