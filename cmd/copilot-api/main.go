@@ -333,7 +333,7 @@ func runCheckUsage(args []string) {
 	// Load token from file/env
 	tok, err := auth.LoadToken()
 	if err != nil || tok == "" {
-		slog.Error("No GitHub token found. Run `copilot-api-go auth` first.")
+		fmt.Fprintln(os.Stderr, "No GitHub token found. Run `copilot-api-go auth` first.")
 		os.Exit(1)
 	}
 	state.SetGitHubToken(tok)
