@@ -30,7 +30,7 @@ var wsUpgrader = websocket.Upgrader{
 func WebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("WebSocket upgrade failed", "error", err)
+		slog.ErrorContext(r.Context(), "WebSocket upgrade failed", "error", err)
 		return
 	}
 	defer conn.Close()

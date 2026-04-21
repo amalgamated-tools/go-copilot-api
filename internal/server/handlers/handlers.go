@@ -65,7 +65,7 @@ func proxyUpstream(w http.ResponseWriter, r *http.Request, cfg proxyConfig) {
 
 	// Ensure Copilot token is valid
 	if err := token.EnsureValidCopilotToken(); err != nil {
-		slog.Warn("token refresh failed", "error", err)
+		slog.WarnContext(r.Context(), "token refresh failed", "error", err)
 	}
 
 	// Read request body
@@ -195,7 +195,7 @@ func forwardSSE(w http.ResponseWriter, r *http.Request, resp *http.Response) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		slog.Error("error forwarding SSE stream", "error", err)
+		slog.ErrorContext(r.Context(), "error forwarding SSE stream", "error", err)
 	}
 
 	// Ensure we flush at the end

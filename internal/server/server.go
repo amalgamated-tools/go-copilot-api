@@ -180,7 +180,7 @@ func ensureTokenMiddleware(next http.Handler) http.Handler {
 		// Best-effort token refresh; do not block the request on failure
 		if err := token.EnsureValidCopilotToken(); err != nil {
 			// Log but continue — the handler will return an appropriate error if token is missing
-			slog.Warn("token refresh warning", "error", err)
+			slog.WarnContext(r.Context(), "token refresh warning", "error", err)
 		}
 		next.ServeHTTP(w, r)
 	})
