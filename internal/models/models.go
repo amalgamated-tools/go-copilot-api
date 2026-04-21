@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -137,7 +137,7 @@ func StartRefreshLoop(intervalSec int) (stop func()) {
 				return
 			case <-ticker.C:
 				if err := Fetch(); err != nil {
-					log.Printf("model refresh failed: %v", err)
+					slog.Error("model refresh failed", "error", err)
 				}
 			}
 		}

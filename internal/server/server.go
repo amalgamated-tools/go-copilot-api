@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -125,7 +125,7 @@ func ListenAndServe(srv *http.Server) (string, error) {
 	addr := ln.Addr().String()
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("HTTP server error: %v", err)
+			slog.Error("HTTP server error", "error", err)
 		}
 	}()
 	return addr, nil
@@ -180,7 +180,7 @@ func ensureTokenMiddleware(next http.Handler) http.Handler {
 		// Best-effort token refresh; do not block the request on failure
 		if err := token.EnsureValidCopilotToken(); err != nil {
 			// Log but continue — the handler will return an appropriate error if token is missing
-			log.Printf("token refresh warning: %v", err)
+			slog.Warn("token refresh warning", "error", err)
 		}
 		next.ServeHTTP(w, r)
 	})

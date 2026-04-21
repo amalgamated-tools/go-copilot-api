@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -65,7 +65,7 @@ func proxyUpstream(w http.ResponseWriter, r *http.Request, cfg proxyConfig) {
 
 	// Ensure Copilot token is valid
 	if err := token.EnsureValidCopilotToken(); err != nil {
-		log.Printf("token refresh failed: %v", err)
+		slog.Warn("token refresh failed", "error", err)
 	}
 
 	// Read request body
@@ -195,7 +195,7 @@ func forwardSSE(w http.ResponseWriter, r *http.Request, resp *http.Response) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("error forwarding SSE stream: %v", err)
+		slog.Error("error forwarding SSE stream", "error", err)
 	}
 
 	// Ensure we flush at the end
