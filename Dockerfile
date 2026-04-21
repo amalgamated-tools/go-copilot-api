@@ -17,6 +17,8 @@ COPY --from=builder /build/copilot-api /usr/local/bin/copilot-api
 
 USER copilot
 
+VOLUME ["/home/copilot/.local/share/copilot-api"]
+
 EXPOSE 4141
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
