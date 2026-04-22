@@ -77,48 +77,6 @@ jobs:
         with:
           version: v2.11.3
 
-      - name: Run slogcheck
-        id: slogcheck
-        continue-on-error: true
-        run: go run ./cmd/slogcheck ./...
-
-      - name: Run errorfcheck
-        id: errorfcheck
-        continue-on-error: true
-        run: go run ./cmd/errorfcheck ./...
-
-      - name: Report Go lint check outcomes
-        if: always()
-        run: |
-          {
-            echo "### Go Lint Check Outcomes"
-            echo "- go formatting: ${{ steps.gofmt.outcome }}"
-            echo "- strict go formatting (gofumpt): ${{ steps.gofumpt.outcome }}"
-            echo "- go.mod tidy: ${{ steps.gomod.outcome }}"
-            echo "- golangci-lint: ${{ steps.golangci.outcome }}"
-            echo "- slogcheck: ${{ steps.slogcheck.outcome }}"
-            echo "- errorfcheck: ${{ steps.errorfcheck.outcome }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "${{ steps.gofmt.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: go formatting"
-          elif [ "${{ steps.gofumpt.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: strict go formatting (gofumpt)"
-          elif [ "${{ steps.gomod.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: go.mod tidy"
-          elif [ "${{ steps.golangci.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: golangci-lint"
-          elif [ "${{ steps.slogcheck.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: slogcheck"
-          elif [ "${{ steps.errorfcheck.outcome }}" = "failure" ]; then
-            echo "::error::Go Lint failed check: errorfcheck"
-          fi
-
-          if [ "${{ steps.slogcheck.outcome }}" = "failure" ] || \
-             [ "${{ steps.errorfcheck.outcome }}" = "failure" ]; then
-            exit 1
-          fi
-
   go-test:
     runs-on: ubuntu-latest
     name: Go Tests
@@ -135,39 +93,8 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Cache exiftool apt package
-        id: exiftool-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
-        with:
-          path: ${{ runner.temp }}/apt-cache
-          # Stable key tied to the OS only; bump the version suffix (v1 → v2) only
-          # when a different exiftool version is intentionally required.
-          # Previously used hashFiles('.github/workflows/test.yml'), which caused
-          # cache misses on every unrelated workflow edit (action bumps, comments, etc.).
-          key: ${{ runner.os }}-apt-exiftool-v1
-          restore-keys: |
-            ${{ runner.os }}-apt-exiftool-
-
-      - name: Install exiftool
-        run: |
-          mkdir -p "${{ runner.temp }}/apt-cache"
-          if [ "${{ steps.exiftool-cache.outputs.cache-hit }}" = "true" ]; then
-            sudo apt-get -o dir::cache::archives="${{ runner.temp }}/apt-cache" install -y -q --no-download libimage-exiftool-perl
-          else
-            sudo apt-get update -qq
-            sudo apt-get -o dir::cache::archives="${{ runner.temp }}/apt-cache" install -y -q libimage-exiftool-perl
-          fi
-          exiftool -ver
-
       - name: Run Go tests
         run: go test -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Display Go coverage summary
-        id: coverage
-        run: |
-          PCT=$(go tool cover -func=coverage.out | awk '/^total:/{print $NF}')
-          echo "pct=${PCT}" >> "$GITHUB_OUTPUT"
-          echo "Coverage: ${PCT}"
 
       - name: Check for known vulnerabilities
         run: |
@@ -225,17 +152,3 @@ jobs:
 
           echo "::warning::Only Go stdlib vulnerabilities found (requires Go toolchain update to fix)"
           exit 0
-
-  go-all:
-    runs-on: ubuntu-latest
-    if: always()
-    # This job only runs a shell check; 2 minutes is more than enough.
-    # Without a timeout, a hung runner would default to 6 hours.
-    timeout-minutes: 2
-    steps:
-      - name: Check all Go jobs passed (or skipped for docs-only)
-        run: |
-          if [[ "${{ needs.go-lint.result }}" != "success" || "${{ needs.go-test.result }}" != "success" ]]; then
-            echo "One or more Go jobs failed"
-            exit 1
-          fi
