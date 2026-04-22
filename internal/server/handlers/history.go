@@ -31,7 +31,7 @@ func HistoryGetEntries(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"entries": entries,
 		"total":   history.Global().Count(),
 	})
@@ -46,26 +46,26 @@ func HistoryGetEntry(w http.ResponseWriter, r *http.Request) {
 	if entry == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entry)
+	_ = json.NewEncoder(w).Encode(entry)
 }
 
 // HistoryDeleteEntries handles DELETE /history/api/entries.
 func HistoryDeleteEntries(w http.ResponseWriter, r *http.Request) {
 	history.Global().DeleteAll()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 // HistoryGetStats handles GET /history/api/stats.
 func HistoryGetStats(w http.ResponseWriter, r *http.Request) {
 	stats := history.Global().GetStats()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	_ = json.NewEncoder(w).Encode(stats)
 }
 
 // HistoryExport handles GET /history/api/export.
@@ -73,7 +73,7 @@ func HistoryExport(w http.ResponseWriter, r *http.Request) {
 	all := history.Global().GetAll()
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", `attachment; filename="history-export.json"`)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"exported_at": time.Now().UTC().Format(time.RFC3339),
 		"entries":     all,
 	})
@@ -83,7 +83,7 @@ func HistoryExport(w http.ResponseWriter, r *http.Request) {
 func HistoryGetSessions(w http.ResponseWriter, r *http.Request) {
 	sessions := history.Global().Sessions()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"sessions": sessions,
 		"total":    len(sessions),
 	})
@@ -103,7 +103,7 @@ func HistoryGetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"id":      id,
 		"entries": entries,
 	})
@@ -113,5 +113,5 @@ func HistoryGetSession(w http.ResponseWriter, r *http.Request) {
 func HistoryDeleteSession(w http.ResponseWriter, r *http.Request) {
 	// We don't have per-session deletion; just acknowledge
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

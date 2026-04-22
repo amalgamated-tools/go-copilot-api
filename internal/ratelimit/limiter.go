@@ -116,7 +116,7 @@ func (l *Limiter) GetStatus() Status {
 
 	retryAfterSeconds := 0.0
 	if !l.retryAfter.IsZero() {
-		remaining := l.retryAfter.Sub(time.Now()).Seconds()
+		remaining := time.Until(l.retryAfter).Seconds()
 		if remaining > 0 {
 			retryAfterSeconds = remaining
 		}

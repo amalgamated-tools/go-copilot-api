@@ -16,6 +16,8 @@ import (
 	"github.com/amalgamated-tools/copilot-api-go/internal/token"
 )
 
+const keyError = "error"
+
 // Options configures the HTTP server.
 type Options struct {
 	Port int
@@ -32,7 +34,7 @@ func New(opts Options) *http.Server {
 
 	// Root
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Server running"))
+		_, _ = w.Write([]byte("Server running"))
 	}).Methods("GET")
 
 	// Health
@@ -98,14 +100,14 @@ func New(opts Options) *http.Server {
 	// ── UI placeholder ────────────────────────────────────────────────────────
 	r.HandleFunc("/ui", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<!DOCTYPE html><html><body><h1>Copilot API Go</h1><p>History UI not available in the Go build.</p></body></html>`))
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><body><h1>Copilot API Go</h1><p>History UI not available in the Go build.</p></body></html>`))
 	}).Methods("GET")
 
 	// 404 handler
 	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
 	})
 
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
@@ -125,7 +127,7 @@ func ListenAndServe(srv *http.Server) (string, error) {
 	addr := ln.Addr().String()
 	go func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			slog.Error("HTTP server error", "error", err)
+			slog.ErrorContext(context.Background(), "HTTP server error", slog.Any(keyError, err))
 		}
 	}()
 	return addr, nil
@@ -180,7 +182,7 @@ func ensureTokenMiddleware(next http.Handler) http.Handler {
 		// Best-effort token refresh; do not block the request on failure
 		if err := token.EnsureValidCopilotToken(); err != nil {
 			// Log but continue — the handler will return an appropriate error if token is missing
-			slog.WarnContext(r.Context(), "token refresh warning", "error", err)
+			slog.WarnContext(r.Context(), "token refresh warning", slog.Any(keyError, err))
 		}
 		next.ServeHTTP(w, r)
 	})

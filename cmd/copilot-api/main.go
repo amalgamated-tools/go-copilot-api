@@ -24,6 +24,16 @@ import (
 
 const version = "1.0.0"
 
+const (
+	keyError   = "error"
+	keyVersion = "version"
+	keyCount   = "count"
+	keyID      = "id"
+	keyVendor  = "vendor"
+	keyURL     = "url"
+	keyAddress = "address"
+)
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -120,6 +130,7 @@ func flagPresent(args []string, name string) bool {
 // ============================================================================
 
 func runStart(args []string) {
+	ctx := context.Background()
 	portStr := parseFlag(args, "port", "p", "4141")
 	host := parseFlag(args, "host", "H", "127.0.0.1")
 	accountTypeStr := parseFlag(args, "account-type", "a", "individual")
@@ -155,11 +166,11 @@ func runStart(args []string) {
 
 	// Load and apply config.yaml
 	if err := config.EnsureDataDir(); err != nil {
-		slog.Warn("could not ensure data directory", "error", err)
+		slog.WarnContext(ctx, "could not ensure data directory", slog.Any(keyError, err))
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Warn("could not load config.yaml", "error", err)
+		slog.WarnContext(ctx, "could not load config.yaml", slog.Any(keyError, err))
 	}
 
 	// Apply config to state
@@ -194,33 +205,36 @@ func runStart(args []string) {
 		ratelimit.Init(rlCfg)
 	}
 
-	slog.Info("copilot-api-go", "version", version)
+	slog.InfoContext(ctx, "copilot-api-go", slog.String(keyVersion, version))
 
 	// Fetch VSCode version
 	vsCodeVersion, err := copilot.FetchVSCodeVersion()
 	if err != nil {
-		slog.Warn("could not fetch VSCode version", "error", err)
+		slog.WarnContext(ctx, "could not fetch VSCode version", slog.Any(keyError, err))
 		vsCodeVersion = copilot.VSCodeVersionFallback
 	}
 	state.SetVSCodeVersion(vsCodeVersion)
 
 	// Initialize token management
 	if err := token.Init(token.InitOptions{CLIToken: githubToken}); err != nil {
-		slog.Error("Authentication failed", "error", err)
+		slog.ErrorContext(ctx, "Authentication failed", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
 	// Fetch model catalog
 	if err := models.Fetch(); err != nil {
-		slog.Error("Failed to fetch models", "error", err)
+		slog.ErrorContext(ctx, "Failed to fetch models", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
 	resp := state.GetModels()
 	if resp != nil {
-		slog.Info("Available models", "count", len(resp.Data))
+		slog.InfoContext(ctx, "Available models", slog.Int(keyCount, len(resp.Data)))
 		for _, m := range resp.Data {
-			slog.DebugContext(context.Background(), "model", "id", m.ID, "vendor", m.Vendor)
+			slog.DebugContext(ctx, "model",
+				slog.String(keyID, m.ID),
+				slog.String(keyVendor, m.Vendor),
+			)
 		}
 	}
 
@@ -239,20 +253,20 @@ func runStart(args []string) {
 	srv := server.New(server.Options{Port: port, Host: host})
 	addr, err := server.ListenAndServe(srv)
 	if err != nil {
-		slog.Error("Failed to start server", "error", err)
+		slog.ErrorContext(ctx, "Failed to start server", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
 	state.SetServerStartTime(time.Now().UnixMilli())
-	slog.Info("Listening", "url", fmt.Sprintf("http://%s:%d", displayHost, port))
-	slog.DebugContext(context.Background(), "bound to", "address", addr)
+	slog.InfoContext(ctx, "Listening", slog.String(keyURL, fmt.Sprintf("http://%s:%d", displayHost, port)))
+	slog.DebugContext(ctx, "bound to", slog.String(keyAddress, addr))
 
 	// Wait for shutdown signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	slog.Info("Shutting down...")
+	slog.InfoContext(ctx, "Shutting down...")
 	token.StopRefresh()
 
 	var shutdownTimeout int
@@ -265,9 +279,9 @@ func runStart(args []string) {
 	defer cancel()
 
 	if err := server.Shutdown(ctx, srv); err != nil {
-		slog.Error("Shutdown error", "error", err)
+		slog.ErrorContext(ctx, "Shutdown error", slog.Any(keyError, err))
 	}
-	slog.Info("Stopped.")
+	slog.InfoContext(ctx, "Stopped.")
 }
 
 // ============================================================================
@@ -275,9 +289,10 @@ func runStart(args []string) {
 // ============================================================================
 
 func runAuth(args []string) {
+	ctx := context.Background()
 	_ = args
 	if err := config.EnsureDataDir(); err != nil {
-		slog.Error("Could not ensure data directory", "error", err)
+		slog.ErrorContext(ctx, "Could not ensure data directory", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
@@ -290,7 +305,7 @@ func runAuth(args []string) {
 	fmt.Println("Starting GitHub device authorization flow...")
 	tok, err := auth.RunDeviceFlow()
 	if err != nil {
-		slog.Error("Authentication failed", "error", err)
+		slog.ErrorContext(ctx, "Authentication failed", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
@@ -299,7 +314,7 @@ func runAuth(args []string) {
 	// Validate and show user info
 	user, err := token.GetGitHubUser()
 	if err != nil {
-		slog.Warn("could not validate token", "error", err)
+		slog.WarnContext(ctx, "could not validate token", slog.Any(keyError, err))
 	} else {
 		fmt.Printf("Logged in as %s\n", user.Login)
 	}
@@ -312,9 +327,10 @@ func runAuth(args []string) {
 // ============================================================================
 
 func runLogout(args []string) {
+	ctx := context.Background()
 	_ = args
 	if err := auth.ClearToken(); err != nil {
-		slog.Error("Failed to clear token", "error", err)
+		slog.ErrorContext(ctx, "Failed to clear token", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 	fmt.Println("Logged out. GitHub token removed.")
@@ -325,9 +341,10 @@ func runLogout(args []string) {
 // ============================================================================
 
 func runCheckUsage(args []string) {
+	ctx := context.Background()
 	_ = args
 	if err := config.EnsureDataDir(); err != nil {
-		slog.Error("Could not ensure data directory", "error", err)
+		slog.ErrorContext(ctx, "Could not ensure data directory", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 
@@ -347,7 +364,7 @@ func runCheckUsage(args []string) {
 
 	usage, err := token.GetCopilotUsage()
 	if err != nil {
-		slog.Error("Failed to get Copilot usage", "error", err)
+		slog.ErrorContext(ctx, "Failed to get Copilot usage", slog.Any(keyError, err))
 		os.Exit(1)
 	}
 

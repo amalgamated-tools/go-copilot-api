@@ -2,6 +2,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"github.com/amalgamated-tools/copilot-api-go/internal/copilot"
 	"github.com/amalgamated-tools/copilot-api-go/internal/state"
 )
+
+const keyError = "error"
 
 // rawModel mirrors the JSON shape returned by Copilot's /models endpoint.
 type rawModel struct {
@@ -163,7 +166,7 @@ func StartRefreshLoop(intervalSec int) (stop func()) {
 				return
 			case <-ticker.C:
 				if err := Fetch(); err != nil {
-					slog.Error("model refresh failed", "error", err)
+					slog.ErrorContext(context.Background(), "model refresh failed", slog.Any(keyError, err))
 				}
 			}
 		}
