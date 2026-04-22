@@ -47,7 +47,7 @@ func GetGitHubUser() (*GitHubUser, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("GitHub /user failed (%d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("github /user failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var user GitHubUser
@@ -134,7 +134,7 @@ func Init(opts InitOptions) error {
 	// 3. Validate token via GitHub /user
 	user, err := GetGitHubUser()
 	if err != nil {
-		return fmt.Errorf("GitHub token validation failed: %w", err)
+		return fmt.Errorf("github token validation failed: %w", err)
 	}
 	slog.InfoContext(context.Background(), "Logged in", slog.String(keyUser, user.Login))
 
