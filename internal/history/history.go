@@ -18,15 +18,15 @@ const (
 
 // Entry is a single recorded request.
 type Entry struct {
-	ID        string     `json:"id"`
-	Endpoint  string     `json:"endpoint"`
-	Model     string     `json:"model"`
-	Stream    bool       `json:"stream"`
-	State     EntryState `json:"state"`
-	StartTime time.Time  `json:"startTime"`
-	EndTime   *time.Time `json:"endTime,omitempty"`
-	DurationMs *int64    `json:"durationMs,omitempty"`
-	Error     string     `json:"error,omitempty"`
+	ID         string     `json:"id"`
+	Endpoint   string     `json:"endpoint"`
+	Model      string     `json:"model"`
+	Stream     bool       `json:"stream"`
+	State      EntryState `json:"state"`
+	StartTime  time.Time  `json:"startTime"`
+	EndTime    *time.Time `json:"endTime,omitempty"`
+	DurationMs *int64     `json:"durationMs,omitempty"`
+	Error      string     `json:"error,omitempty"`
 
 	// Token usage
 	InputTokens  int `json:"inputTokens"`

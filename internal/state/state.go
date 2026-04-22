@@ -16,9 +16,9 @@ const (
 
 // TokenInfo holds GitHub token metadata.
 type TokenInfo struct {
-	Token      string
-	Source     string // "cli" | "env" | "file" | "device-auth"
-	ExpiresAt  *int64 // Unix timestamp, nil if unknown
+	Token       string
+	Source      string // "cli" | "env" | "file" | "device-auth"
+	ExpiresAt   *int64 // Unix timestamp, nil if unknown
 	Refreshable bool
 }
 
@@ -49,6 +49,17 @@ type ModelCapabilities struct {
 	Type      string
 }
 
+type ModelBilling struct {
+	IsPremium    bool
+	Multiplier   float64
+	RestrictedTo []string
+}
+
+type ModelPolicy struct {
+	State string
+	Terms string
+}
+
 // Model is one entry from the Copilot /models response.
 type Model struct {
 	ID                  string
@@ -62,6 +73,8 @@ type Model struct {
 	ModelPickerEnabled  bool
 	ModelPickerCategory string
 	Capabilities        *ModelCapabilities
+	Billing             *ModelBilling
+	Policy              *ModelPolicy
 	SupportedEndpoints  []string
 	RequestHeaders      map[string]string
 }
@@ -77,9 +90,9 @@ type State struct {
 	mu sync.RWMutex
 
 	// Auth tokens
-	GitHubToken     string
-	CopilotToken    string
-	TokenInfo       *TokenInfo
+	GitHubToken      string
+	CopilotToken     string
+	TokenInfo        *TokenInfo
 	CopilotTokenInfo *CopilotTokenInfo
 
 	// Account settings

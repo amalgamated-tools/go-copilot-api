@@ -1,0 +1,44 @@
+version: "2"
+linters:
+  enable:
+    - forbidigo
+    # - sloglint
+  disable:
+    - errcheck
+    - staticcheck
+    - unused
+  settings:
+    forbidigo:
+      forbid:
+        - pattern: ^log\.Print.*$
+          msg: use log/slog instead of log.Print
+        - pattern: ^log\.Fatal.*$
+          msg: use log/slog instead of log.Fatal
+        - pattern: ^log\.Panic.*$
+          msg: use log/slog instead of log.Panic
+      analyze-types: true
+    sloglint:
+      context: "all"  # Enforces *Context() variants everywhere
+      attr-only: true
+      no-raw-keys: true
+      key-naming-case: "snake"
+      args-on-sep-lines: true      
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - _test\.go
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

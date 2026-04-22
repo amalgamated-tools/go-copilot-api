@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	copilotVersion       = "0.38.0"
-	editorPluginVersion  = "copilot-chat/" + copilotVersion
-	userAgent            = "GitHubCopilotChat/" + copilotVersion
-	copilotAPIVersion    = "2025-05-01"
-	internalAPIVersion   = "2025-04-01"
-	githubAPIVersion     = "2022-11-28"
+	copilotVersion      = "0.38.0"
+	editorPluginVersion = "copilot-chat/" + copilotVersion
+	userAgent           = "GitHubCopilotChat/" + copilotVersion
+	copilotAPIVersion   = "2025-05-01"
+	internalAPIVersion  = "2025-04-01"
+	githubAPIVersion    = "2022-11-28"
 
 	GitHubAPIBase = "https://api.github.com"
 	GitHubBase    = "https://github.com"
@@ -54,20 +54,20 @@ func CopilotHeaders() map[string]string {
 	requestID := hex.EncodeToString(func() []byte { b := make([]byte, 16); rand.Read(b); return b }())
 
 	return map[string]string{
-		"Authorization":                        "Bearer " + token,
-		"Content-Type":                         "application/json",
-		"Accept":                               "application/json",
-		"copilot-integration-id":               "vscode-chat",
-		"editor-version":                       "vscode/" + vsCode,
-		"editor-plugin-version":                editorPluginVersion,
-		"user-agent":                           userAgent,
-		"openai-intent":                        "conversation-panel",
-		"x-github-api-version":                 copilotAPIVersion,
-		"x-request-id":                         requestID,
-		"X-Interaction-Id":                     interactionID,
-		"X-Interaction-Type":                   "conversation-panel",
-		"X-Agent-Task-Id":                      requestID,
-		"x-vscode-user-agent-library-version":  "electron-fetch",
+		"Authorization":                       "Bearer " + token,
+		"Content-Type":                        "application/json",
+		"Accept":                              "application/json",
+		"copilot-integration-id":              "vscode-chat",
+		"editor-version":                      "vscode/" + vsCode,
+		"editor-plugin-version":               editorPluginVersion,
+		"user-agent":                          userAgent,
+		"openai-intent":                       "conversation-panel",
+		"x-github-api-version":                copilotAPIVersion,
+		"x-request-id":                        requestID,
+		"X-Interaction-Id":                    interactionID,
+		"X-Interaction-Type":                  "conversation-panel",
+		"X-Agent-Task-Id":                     requestID,
+		"x-vscode-user-agent-library-version": "electron-fetch",
 	}
 }
 

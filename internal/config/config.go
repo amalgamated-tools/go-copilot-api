@@ -24,25 +24,25 @@ type RateLimiterConfig struct {
 
 // AnthropicConfig holds Anthropic-specific configuration.
 type AnthropicConfig struct {
-	RewriteTools             *bool               `yaml:"rewrite_tools"`
-	StripServerTools         bool                `yaml:"strip_server_tools"`
-	ImmutableThinkingMessages bool               `yaml:"immutable_thinking_messages"`
-	DedupToolCalls           interface{}         `yaml:"dedup_tool_calls"` // false | "input" | "result"
-	StripReadToolResultTags  bool                `yaml:"strip_read_tool_result_tags"`
-	ContextEditing           *ContextEditingConf `yaml:"context_editing"`
-	ToolSearchEnabled        *bool               `yaml:"tool_search_enabled"`
-	CacheControlMode         string              `yaml:"cache_control_mode"`
-	NonDeferredTools         []string            `yaml:"non_deferred_tools"`
-	RewriteSystemReminders   interface{}         `yaml:"rewrite_system_reminders"` // false | []RewriteRule
-	CompressToolResults      *bool               `yaml:"compress_tool_results_before_truncate"`
+	RewriteTools              *bool               `yaml:"rewrite_tools"`
+	StripServerTools          bool                `yaml:"strip_server_tools"`
+	ImmutableThinkingMessages bool                `yaml:"immutable_thinking_messages"`
+	DedupToolCalls            interface{}         `yaml:"dedup_tool_calls"` // false | "input" | "result"
+	StripReadToolResultTags   bool                `yaml:"strip_read_tool_result_tags"`
+	ContextEditing            *ContextEditingConf `yaml:"context_editing"`
+	ToolSearchEnabled         *bool               `yaml:"tool_search_enabled"`
+	CacheControlMode          string              `yaml:"cache_control_mode"`
+	NonDeferredTools          []string            `yaml:"non_deferred_tools"`
+	RewriteSystemReminders    interface{}         `yaml:"rewrite_system_reminders"` // false | []RewriteRule
+	CompressToolResults       *bool               `yaml:"compress_tool_results_before_truncate"`
 }
 
 // ContextEditingConf holds context-editing options.
 type ContextEditingConf struct {
-	Mode         string `yaml:"mode"`
-	TriggerTokens int   `yaml:"trigger_tokens"`
-	KeepTools    int    `yaml:"keep_tools"`
-	KeepThinking int    `yaml:"keep_thinking"`
+	Mode          string `yaml:"mode"`
+	TriggerTokens int    `yaml:"trigger_tokens"`
+	KeepTools     int    `yaml:"keep_tools"`
+	KeepThinking  int    `yaml:"keep_thinking"`
 }
 
 // OpenAIResponsesConfig holds OpenAI Responses API options.
@@ -76,10 +76,10 @@ type Config struct {
 	HistoryMinEntries int `yaml:"history_min_entries"`
 
 	// Subsection configs
-	RateLimiter    *RateLimiterConfig     `yaml:"rate_limiter"`
-	Anthropic      *AnthropicConfig       `yaml:"anthropic"`
+	RateLimiter     *RateLimiterConfig     `yaml:"rate_limiter"`
+	Anthropic       *AnthropicConfig       `yaml:"anthropic"`
 	OpenAIResponses *OpenAIResponsesConfig `yaml:"openai-responses"`
-	Model          *ModelConfig           `yaml:"model"`
+	Model           *ModelConfig           `yaml:"model"`
 
 	// System prompt overrides
 	SystemPromptOverrides []RewriteRule `yaml:"system_prompt_overrides"`

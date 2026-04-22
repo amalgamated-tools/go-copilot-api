@@ -1,0 +1,145 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [synchronize, opened, reopened]
+
+permissions:
+  # Required: allow read access to the content for analysis.
+  contents: read
+  # Optional: allow read access to pull requests. Use with `only-new-issues` option.
+  pull-requests: read
+
+# Cancel in-progress runs for the same branch/PR when a new push arrives.
+# Main-branch runs are never cancelled so merge results are always recorded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # Lint and test run fully in parallel with frontend-checks; the dist placeholder
+  # (.gitkeep) in internal/server/dist satisfies //go:embed all:dist for compilation.
+  go-lint:
+    runs-on: ubuntu-latest
+    name: Go Lint
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-version: 1.26.2
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Check Go formatting
+        id: gofmt
+        run: |
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            echo "Go files are not formatted. Please run 'go fmt ./...'"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: Check strict Go formatting (gofumpt)
+        id: gofumpt
+        run: |
+          if [ "$(go tool gofumpt -l . | wc -l)" -gt 0 ]; then
+            echo "Go files are not strictly formatted. Please run 'make hardfmt'."
+            go tool gofumpt -d .
+            exit 1
+          fi
+
+      - name: Verify go.mod is tidy
+        id: gomod
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
+            echo "go.mod or go.sum is not tidy. Please run 'go mod tidy'."
+            git diff go.mod go.sum
+            exit 1
+          fi
+          
+      - name: golangci-lint
+        id: golangci
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20
+        with:
+          version: v2.11.3
+
+  go-test:
+    runs-on: ubuntu-latest
+    name: Go Tests
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-version: 1.26.2
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Run Go tests
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Check for known vulnerabilities
+        run: |
+          # govulncheck exit codes: 0 = no vulns, 3 = vulns found, other = error.
+          # Stdlib vulns require a Go toolchain update and cannot be fixed in-repo,
+          # so we only fail on non-stdlib (third-party) vulnerabilities.
+          set +e
+          go tool govulncheck -format json ./... > vulncheck.json 2>vulncheck.stderr
+          rc=$?
+          set -e
+
+          if [ "$rc" -eq 0 ]; then
+            echo "No vulnerabilities found."
+            exit 0
+          fi
+
+          # Any exit code other than 3 is an execution error — fail hard.
+          if [ "$rc" -ne 3 ]; then
+            echo "::error::govulncheck failed with exit code $rc"
+            cat vulncheck.stderr
+            exit 1
+          fi
+
+          # Count non-stdlib findings (module path is not "stdlib").
+          # Fail closed: if jq parsing fails, treat as non-stdlib to avoid masking issues.
+          if ! jq_out=$(jq -r 'select(.finding != null) | .finding.trace[0].module' vulncheck.json 2>/dev/null); then
+            non_stdlib=1
+          else
+            non_stdlib=$(echo "$jq_out" | (grep -cv '^stdlib$' || echo 0))
+          fi
+
+          # Render a human-readable summary from the JSON instead of re-running govulncheck.
+          summary=$(jq -r '
+            select(.finding != null)
+            | .finding as $f
+            | ($f.osv // "unknown") as $osv
+            | ($f.trace[0].module // "unknown") as $module
+            | ($f.trace[0].package // "unknown") as $package
+            | "- \($osv) | module: \($module) | package: \($package)"
+          ' vulncheck.json 2>/dev/null)
+
+          if [ -n "$summary" ]; then
+            echo "Vulnerability summary:"
+            echo "$summary"
+          else
+            echo "Vulnerabilities were detected, but no summary could be rendered from vulncheck.json."
+            echo "Raw govulncheck JSON output:"
+            cat vulncheck.json
+          fi
+
+          if [ "$non_stdlib" -gt 0 ]; then
+            echo "::error::Non-stdlib vulnerabilities found"
+            exit 1
+          fi
+
+          echo "::warning::Only Go stdlib vulnerabilities found (requires Go toolchain update to fix)"
+          exit 0
