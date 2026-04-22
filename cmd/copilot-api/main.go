@@ -275,13 +275,13 @@ func runStart(args []string) {
 		shutdownTimeout = 60
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(shutdownTimeout)*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(shutdownTimeout)*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(ctx, srv); err != nil {
-		slog.ErrorContext(ctx, "Shutdown error", slog.Any(keyError, err))
+	if err := server.Shutdown(shutdownCtx, srv); err != nil {
+		slog.ErrorContext(shutdownCtx, "Shutdown error", slog.Any(keyError, err))
 	}
-	slog.InfoContext(ctx, "Stopped.")
+	slog.InfoContext(shutdownCtx, "Stopped.")
 }
 
 // ============================================================================
