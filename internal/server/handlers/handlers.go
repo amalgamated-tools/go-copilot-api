@@ -365,7 +365,7 @@ func Embeddings(w http.ResponseWriter, r *http.Request) {
 
 // stripInternalFields removes the request_headers field before sending to client.
 func stripInternalFields(m *state.Model) map[string]interface{} {
-	result := map[string]interface{}{
+	result := map[string]any{
 		"id":                    m.ID,
 		"name":                  m.Name,
 		"vendor":                m.Vendor,
@@ -378,15 +378,22 @@ func stripInternalFields(m *state.Model) map[string]interface{} {
 		"model_picker_category": m.ModelPickerCategory,
 		"supported_endpoints":   m.SupportedEndpoints,
 	}
+	if m.Billing != nil {
+		result["billing"] = map[string]any{
+			"is_premium":    m.Billing.IsPremium,
+			"multiplier":    m.Billing.Multiplier,
+			"restricted_to": m.Billing.RestrictedTo,
+		}
+	}
 	if m.Capabilities != nil {
-		caps := map[string]interface{}{
+		caps := map[string]any{
 			"family":    m.Capabilities.Family,
 			"tokenizer": m.Capabilities.Tokenizer,
 			"type":      m.Capabilities.Type,
 			"supports":  m.Capabilities.Supports,
 		}
 		if m.Capabilities.Limits != nil {
-			limits := map[string]interface{}{}
+			limits := map[string]any{}
 			if m.Capabilities.Limits.MaxContextWindowTokens != nil {
 				limits["max_context_window_tokens"] = *m.Capabilities.Limits.MaxContextWindowTokens
 			}

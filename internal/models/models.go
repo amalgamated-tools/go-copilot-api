@@ -29,15 +29,28 @@ type rawModel struct {
 	SupportedEndpoints  []string              `json:"supported_endpoints,omitempty"`
 	RequestHeaders      map[string]string     `json:"request_headers,omitempty"`
 	Capabilities        *rawModelCapabilities `json:"capabilities,omitempty"`
+	Billing             *rawModelBilling      `json:"billing,omitempty"`
+	Policy              *rawModelPolicy       `json:"policy,omitempty"`
+}
+
+type rawModelPolicy struct {
+	State string `json:"state"`
+	Terms string `json:"terms,omitempty"`
+}
+
+type rawModelBilling struct {
+	IsPremium    bool     `json:"is_premium"`
+	Multiplier   float64  `json:"multiplier"`
+	RestrictedTo []string `json:"restricted_to,omitempty"`
 }
 
 type rawModelCapabilities struct {
 	Family    string                 `json:"family,omitempty"`
+	Limits    *rawModelLimits        `json:"limits,omitempty"`
 	Object    string                 `json:"object,omitempty"`
+	Supports  map[string]interface{} `json:"supports,omitempty"`
 	Tokenizer string                 `json:"tokenizer,omitempty"`
 	Type      string                 `json:"type,omitempty"`
-	Limits    *rawModelLimits        `json:"limits,omitempty"`
-	Supports  map[string]interface{} `json:"supports,omitempty"`
 }
 
 type rawModelLimits struct {
@@ -98,6 +111,19 @@ func convertModels(raw rawModelsResponse) state.ModelsResponse {
 			ModelPickerCategory: r.ModelPickerCategory,
 			SupportedEndpoints:  r.SupportedEndpoints,
 			RequestHeaders:      r.RequestHeaders,
+		}
+		if r.Policy != nil {
+			m.Policy = &state.ModelPolicy{
+				State: r.Policy.State,
+				Terms: r.Policy.Terms,
+			}
+		}
+		if r.Billing != nil {
+			m.Billing = &state.ModelBilling{
+				IsPremium:    r.Billing.IsPremium,
+				Multiplier:   r.Billing.Multiplier,
+				RestrictedTo: r.Billing.RestrictedTo,
+			}
 		}
 		if r.Capabilities != nil {
 			caps := &state.ModelCapabilities{
