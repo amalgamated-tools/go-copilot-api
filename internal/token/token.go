@@ -2,6 +2,7 @@
 package token
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,11 @@ import (
 	"github.com/amalgamated-tools/copilot-api-go/internal/auth"
 	"github.com/amalgamated-tools/copilot-api-go/internal/copilot"
 	"github.com/amalgamated-tools/copilot-api-go/internal/state"
+)
+
+const (
+	keyError = "error"
+	keyUser  = "user"
 )
 
 // GitHubUser represents a GitHub user from /user.
@@ -41,7 +47,7 @@ func GetGitHubUser() (*GitHubUser, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("GitHub /user failed (%d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("github /user failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var user GitHubUser
@@ -75,7 +81,7 @@ func fetchCopilotToken() (*copilotTokenResponse, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Copilot token request failed (%d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("copilot token request failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result copilotTokenResponse
@@ -87,7 +93,6 @@ func fetchCopilotToken() (*copilotTokenResponse, error) {
 
 // Manager handles GitHub and Copilot token lifecycle.
 type Manager struct {
-	mu          sync.Mutex
 	stopRefresh chan struct{}
 	stopOnce    sync.Once
 }
@@ -129,9 +134,9 @@ func Init(opts InitOptions) error {
 	// 3. Validate token via GitHub /user
 	user, err := GetGitHubUser()
 	if err != nil {
-		return fmt.Errorf("GitHub token validation failed: %w", err)
+		return fmt.Errorf("github token validation failed: %w", err)
 	}
-	slog.Info("Logged in", "user", user.Login)
+	slog.InfoContext(context.Background(), "Logged in", slog.String(keyUser, user.Login))
 
 	// 4. Fetch initial Copilot token
 	if err := refreshCopilotToken(); err != nil {
@@ -223,7 +228,7 @@ func (m *Manager) refreshLoop() {
 			return
 		case <-time.After(wait):
 			if err := refreshCopilotToken(); err != nil {
-				slog.Error("Failed to refresh Copilot token", "error", err)
+				slog.ErrorContext(context.Background(), "Failed to refresh Copilot token", slog.Any(keyError, err))
 			}
 		}
 	}
@@ -282,7 +287,7 @@ func GetCopilotUsage() (*CopilotUsage, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Copilot usage request failed (%d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("copilot usage request failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result CopilotUsage

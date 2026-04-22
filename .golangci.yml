@@ -2,11 +2,7 @@ version: "2"
 linters:
   enable:
     - forbidigo
-    # - sloglint
-  disable:
-    - errcheck
-    - staticcheck
-    - unused
+    - sloglint
   settings:
     forbidigo:
       forbid:

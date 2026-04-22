@@ -24,7 +24,7 @@ import (
 func jsonError(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": map[string]string{
 			"message": msg,
 			"type":    "server_error",
@@ -47,8 +47,6 @@ type proxyConfig struct {
 	upstream string
 	// headers to send to upstream (replaces default Copilot headers).
 	headers map[string]string
-	// If true, add the Anthropic-version beta header for streaming.
-	anthropicStream bool
 }
 
 // proxyUpstream forwards the incoming request body to an upstream URL,
@@ -65,7 +63,7 @@ func proxyUpstream(w http.ResponseWriter, r *http.Request, cfg proxyConfig) {
 
 	// Ensure Copilot token is valid
 	if err := token.EnsureValidCopilotToken(); err != nil {
-		slog.WarnContext(r.Context(), "token refresh failed", "error", err)
+		slog.WarnContext(r.Context(), "token refresh failed", slog.Any(keyError, err))
 	}
 
 	// Read request body
@@ -147,7 +145,7 @@ func proxyUpstream(w http.ResponseWriter, r *http.Request, cfg proxyConfig) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
+		_, _ = io.Copy(w, resp.Body)
 		return
 	}
 
@@ -156,7 +154,7 @@ func proxyUpstream(w http.ResponseWriter, r *http.Request, cfg proxyConfig) {
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
+		_, _ = io.Copy(w, resp.Body)
 	}
 }
 
@@ -195,7 +193,7 @@ func forwardSSE(w http.ResponseWriter, r *http.Request, resp *http.Response) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		slog.ErrorContext(r.Context(), "error forwarding SSE stream", "error", err)
+		slog.ErrorContext(r.Context(), "error forwarding SSE stream", slog.Any(keyError, err))
 	}
 
 	// Ensure we flush at the end
@@ -225,7 +223,7 @@ func Health(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": status,
 		"checks": map[string]bool{
 			"copilotToken": copilotToken,
@@ -310,7 +308,7 @@ func CountTokens(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = io.Copy(w, resp.Body)
 }
 
 // ============================================================================
@@ -356,7 +354,7 @@ func Embeddings(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = io.Copy(w, resp.Body)
 }
 
 // ============================================================================
@@ -430,7 +428,7 @@ func ListModels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"object": resp.Object,
 		"data":   data,
 	})
@@ -459,7 +457,7 @@ func GetModel(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": map[string]string{
 				"message": fmt.Sprintf("The model '%s' does not exist", modelID),
 				"type":    "invalid_request_error",
@@ -471,7 +469,7 @@ func GetModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stripInternalFields(m))
+	_ = json.NewEncoder(w).Encode(stripInternalFields(m))
 }
 
 // ============================================================================
@@ -481,9 +479,9 @@ func GetModel(w http.ResponseWriter, r *http.Request) {
 // EventLoggingBatch handles POST /api/event_logging/batch.
 // The Anthropic SDK sends telemetry here; we return 200 OK to avoid SDK errors.
 func EventLoggingBatch(w http.ResponseWriter, r *http.Request) {
-	io.Copy(io.Discard, r.Body)
+	_, _ = io.Copy(io.Discard, r.Body)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // ============================================================================
@@ -572,7 +570,7 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	quota := getQuota()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  serverStatus,
 		"uptime":  uptime,
 		"version": "go-1.0.0",
@@ -618,7 +616,7 @@ func TokenInfo(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"github":  githubInfo,
 		"copilot": copilotInfo,
 	})
@@ -648,7 +646,7 @@ func Config(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cfg)
+	_ = json.NewEncoder(w).Encode(cfg)
 }
 
 // ============================================================================
@@ -658,7 +656,7 @@ func Config(w http.ResponseWriter, r *http.Request) {
 // Logs handles GET /api/logs.
 func Logs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"entries": []interface{}{},
 		"total":   0,
 	})
