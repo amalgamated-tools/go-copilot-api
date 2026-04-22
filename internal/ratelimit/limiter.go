@@ -31,12 +31,12 @@ type Status struct {
 
 // Limiter is the adaptive rate limiter.
 type Limiter struct {
-	mu                  sync.Mutex
-	mode                Mode
+	mu                   sync.Mutex
+	mode                 Mode
 	consecutiveSuccesses int
-	lastRateLimitedAt   *time.Time
-	retryAfter          time.Time
-	config              Config
+	lastRateLimitedAt    *time.Time
+	retryAfter           time.Time
+	config               Config
 }
 
 var global *Limiter
