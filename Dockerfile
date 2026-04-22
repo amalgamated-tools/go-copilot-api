@@ -1,28 +1,27 @@
+# Stage 1: Build Go binary
 FROM golang:1.26-alpine AS backend
-
-WORKDIR /build
-
+ARG VERSION=dev
+WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
-
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o copilot-api ./cmd/copilot-api/
+RUN go build -ldflags "-X main.version=${VERSION}" -o copilot-api-go ./cmd/copilot-api
 
+# Stage 2: Final image
 FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata
+WORKDIR /app
 
-RUN apk add --no-cache ca-certificates wget \
-  && adduser -D -u 1000 copilot
+COPY --from=backend /app/copilot-api-go .
 
-COPY --from=builder /build/copilot-api /usr/local/bin/copilot-api
-
-USER copilot
-
-VOLUME ["/home/copilot/.local/share/copilot-api"]
+# Create the token directory
+RUN mkdir -p /root/.local/share/copilot-api
 
 EXPOSE 4141
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost:4141/health || exit 1
+# Add a health check or wrapper script
+COPY check_token.sh /app/
+RUN chmod +x /app/check_token.sh
 
-ENTRYPOINT ["copilot-api"]
-CMD ["start", "--host", "0.0.0.0", "--port", "4141"]
+ENTRYPOINT ["/app/check_token.sh"]
+CMD ["start", "--port", "4141", "--host", "0.0.0.0"]

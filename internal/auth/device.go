@@ -124,9 +124,16 @@ func SaveToken(token string) error {
 	return nil
 }
 
-// LoadToken reads the GitHub token from the data directory token file.
-// Returns an empty string (and nil error) if no token is stored.
+// LoadToken reads the GitHub token from the environment or data directory token file.
+// Checks GITHUB_TOKEN env var first, then falls back to stored token file.
+// Returns an empty string (and nil error) if no token is found.
 func LoadToken() (string, error) {
+	// Check environment variable first
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return strings.TrimSpace(token), nil
+	}
+
+	// Fall back to token file
 	data, err := os.ReadFile(config.TokenPath())
 	if err != nil {
 		if os.IsNotExist(err) {
