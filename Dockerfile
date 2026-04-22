@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS backend
 
 WORKDIR /build
 
@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o copilot-api ./cmd/copil
 FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates wget \
-    && adduser -D -u 1000 copilot
+  && adduser -D -u 1000 copilot
 
 COPY --from=builder /build/copilot-api /usr/local/bin/copilot-api
 
